@@ -76,25 +76,21 @@ public class CommandLine
                 string[] files = Directory.GetFiles(inputCSVDirectories[i]);
                 foreach (string file in files)
                 {
-                    Console.WriteLine("Found File: {0}", file);
                     switch (i)
                     {
                         case 0:
-                            Console.WriteLine("Parse Sales");
                             string jsonSales = CommissionParserSale.CreateJsonSales(file);
                             string fn = Path.GetFileNameWithoutExtension(file);
                             string fullfilename = outputJsonDirectories[0] + fn + ".json";
                             File.WriteAllText(fullfilename, jsonSales);
                             break;
                         case 1:
-                            Console.WriteLine("Parse SalesPeople");
                             string jsonPerson = CommissionParserPerson.CreateJsonPerson(file);
                             fn = Path.GetFileNameWithoutExtension(file);
                             fullfilename = outputJsonDirectories[1] + fn + ".json";
                             File.WriteAllText(fullfilename, jsonPerson);
                             break;
                         case 2:
-                            Console.WriteLine("Parse Products");
                             string jsonProduct = CommissionParserProduct.CreateJsonProduct(file);
                             fn = Path.GetFileNameWithoutExtension(file);
                             fullfilename = outputJsonDirectories[2] + fn + ".json";
@@ -104,7 +100,6 @@ public class CommandLine
                 }
             }
         }
-        Console.WriteLine();
 
         Dictionary<string, List<Sale>> regionSaleMap = new Dictionary<string, List<Sale>>();
         Dictionary<string, List<Product>> productMap = new Dictionary<string, List<Product>>();
@@ -120,7 +115,6 @@ public class CommandLine
                     switch (i)
                     {
                         case 0:
-                            Console.WriteLine("Found File: {0}", file);
                             var jsonSale = CommissionParserSale.ParseJsonSale(file);
 
                             foreach (KeyValuePair<string, Sale[]> sale in jsonSale)
@@ -138,7 +132,6 @@ public class CommandLine
                             break;
 
                         case 1:
-                            Console.WriteLine("Found File: {0}", file);
                             var jsonPerson = CommissionParserSale.ParseJsonSale(file);
 
                             foreach (KeyValuePair<string, Sale[]> sale in jsonPerson)
@@ -156,7 +149,6 @@ public class CommandLine
                             break;
 
                         case 2:
-                            Console.WriteLine("Found File: {0}", file);
                             var jsonProduct = CommissionParserProduct.ParseJsonProduct(file);
 
                             foreach (KeyValuePair<string, Product[]> product in jsonProduct)
@@ -176,7 +168,6 @@ public class CommandLine
                 }
             }
         }
-        Console.WriteLine();
 
         Dictionary<string, double> commissionsBracketMap = new Dictionary<string, double>();
 
@@ -193,8 +184,6 @@ public class CommandLine
                 {
                     agentRevenue = agentRevenue + Int32.Parse(s.Dunno);
                 }
-
-                Console.WriteLine();
 
             }
             if (0 < agentRevenue && agentRevenue <= 50000)
@@ -223,24 +212,70 @@ public class CommandLine
             }
         }
 
-        //foreach (KeyValuePair<string, List<Sale>> sale in personMap)
-        //{
-        //    List<Sale> pointOfSale = sale.Value
+        Dictionary<string, Dictionary<string, double>> salesPersonByRegionCommissionsMap = new Dictionary<string, Dictionary<string, double>>();
 
-        //    string regionSale = sale.Key;
-        //    int regionRevenue = 0;
+        // Iterate through each SalesPerson (sale.key (type is: string))
+        //     and their list of sales (sale.value (type is: List<Sale>)
 
-        //    foreach (Sale s in sale.Value)
-        //    {
+        foreach (KeyValuePair<string, List<Sale>> sale in personMap)
+        {
+            string salesPerson = sale.Key;
+            List<Sale> salesPersonListOfSales = sale.Value;
 
-        //        Console.WriteLine();
-        //    }
+            // Add entry to the personbyregion map:
+            salesPersonByRegionCommissionsMap[salesPerson] = new Dictionary<string, double>();
 
+            // The above line just added a structure similar to this to the map:
+            //{
+            //    "Amy": {}  // Note that this is just a key of "Amy" and a Dict object with no entries
+            //}
 
-        //    {
-        //        regionSaleMap[sale.Key] = regionSaleMap[sale.Key] + Int32.Parse(s.Revenue);
-        //    }
-        //}
+            // Iterate through List of sales here:
+            foreach (Sale salesPersonSale in salesPersonListOfSales)
+            {
+                // For each sale this Sales Person made, Look up what region it belongs to:
+                foreach (KeyValuePair<string, List<Sale>> salesByRegion in regionSaleMap)
+                {
+                    string region = salesByRegion.Key;
+                    List<Sale> salesByRegionListOfSales = salesByRegion.Value;
+
+                    // This point we have the region, and list of all sales in that region, loop through every sale:
+                    foreach (Sale regionSale in salesByRegionListOfSales)
+                    {
+                        // Test if this sale matches the iterator for the Sale for the salesPerson:
+                        if (regionSale.Equals (salesPersonSale))
+                        {
+                            // Now that we have the region, we can create an entry like this for the salesperson at this region:
+                            // {
+                            //     "West": 0
+                            // }
+
+                            // Note the since this is a dictionary of a dictionary, the [key][key] is usable
+                            if (!salesPersonByRegionCommissionsMap[salesPerson].ContainsKey(region))
+                            {
+                                salesPersonByRegionCommissionsMap[salesPerson][region] = 0;
+                            }
+
+                            // Looks like a match, we now know what region this sale belongs to:
+                            //   Note the +=.  This is shorthand for:  x = x + y
+                            salesPersonByRegionCommissionsMap[salesPerson][region] += Int32.Parse(regionSale.Revenue);
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (KeyValuePair<string, Dictionary<string, double>> salesPersonRegionRevenue in salesPersonByRegionCommissionsMap)
+        {
+            Console.WriteLine("{0}:", salesPersonRegionRevenue.Key);
+
+            foreach (KeyValuePair<string, double> regionRevenue in salesPersonRegionRevenue.Value)
+            {
+                Console.WriteLine("    {0}:{1}", regionRevenue.Key, (commissionsBracketMap[salesPersonRegionRevenue.Key] * regionRevenue.Value).ToString("C2"));
+            }
+
+            Console.WriteLine();
+        }
 
         Console.WriteLine();
     }
