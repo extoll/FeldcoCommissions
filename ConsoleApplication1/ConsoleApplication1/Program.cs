@@ -260,6 +260,8 @@ public class CommandLine
             }
         }
 
+        bool isTheArgumentValid = true;
+
         foreach (KeyValuePair<string, Dictionary<string, double>> salesPersonRegionRevenue in salesPersonByRegionCommissionsMap)
         {
             //Checks for given arguments to narrow field to give sales people and otherwise produces all sales person commission by region.
@@ -267,6 +269,8 @@ public class CommandLine
             {
                 Console.WriteLine("{0}:", salesPersonRegionRevenue.Key);
 
+                isTheArgumentValid = false;
+                
                 foreach (KeyValuePair<string, double> regionRevenue in salesPersonRegionRevenue.Value)
                 {
                     //Applies the derived comssions value by agent to the net sales in each region.
@@ -274,6 +278,16 @@ public class CommandLine
                 }
 
                 Console.WriteLine();
+            }
+        }
+
+        if (isTheArgumentValid)
+        {
+            Console.WriteLine("No valid arguments were provided.\nArguments are case sensitive and must include a valid sales person.\nPlease enter a valid argument.\nValid sales people names are listed below.");
+            
+            foreach (string salesPerson in salesPersonByRegionCommissionsMap.Keys)
+            {
+                Console.WriteLine("  {0}", salesPerson);
             }
         }
 
