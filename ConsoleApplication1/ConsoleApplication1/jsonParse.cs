@@ -54,7 +54,7 @@ namespace CommissionParser
             get { return dunno; }
             set { dunno = value; }
         }
-
+        //Associates each attribute of the class equal to a value by column.
         public void Create(string line) {
             string[] columns = line.Split(',');
             this.cc = columns[0];
@@ -65,7 +65,7 @@ namespace CommissionParser
             this.revenue = columns[5];
             this.dunno = columns[6];
         }
-
+        //Adds functionality to compare sales across maps by revenue, last name, and first name.
         public override bool Equals(System.Object obj)
         {
             // If parameter is null return false.
@@ -81,12 +81,13 @@ namespace CommissionParser
                 return false;
             }
 
-            // Return true if the fields match:
+            // Return true if the fields match.
             return (Revenue == s.Revenue) && (Last == s.Last) && (First == s.First);
         }
     }
     class CommissionParserSale
     {
+        //Creation of the json files from the csv files reading through by line turning them into a list of sales.
         public static string CreateJsonSales(string fileName)
         {
             string[] allLines = File.ReadAllLines(fileName);
@@ -101,12 +102,14 @@ namespace CommissionParser
             
                 if (line.Contains(":"))
                 {
+                    //Sets lines with ":" to the key of the dictionary to define the list of sales by region.
                     region = line.Substring(0, line.IndexOf(':'));
                     regionMap[region] = new List<Sale>();
                     
                 }
                 else
                 {
+                    //Checks for completely blank lines and skips over them.
                     if (!line.Equals(",,,,,,"))
                     {
                         Sale newSale = new Sale();

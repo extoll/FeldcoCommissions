@@ -9,18 +9,18 @@ using CommissionParser;
 public class CommandLine
 {
     public static void ReadwithOleDb(string fileName)
-    //Was ignoring sections of data from the spreadsheet after certain values were encountered. Working but unusable methodology//
+    //Was ignoring sections of data from the spreadsheet after certain values were encountered. Working but unusable methodology
     {
         var connectionString = string.Format("Provider=Microsoft.Jet.OLEDB.4.0; data source={0}; Extended Properties=Excel 8.0;", fileName);
 
-        var adapter = new OleDbDataAdapter("SELECT * FROM [CC$]", connectionString); //Calls information from the first tab.//
+        var adapter = new OleDbDataAdapter("SELECT * FROM [CC$]", connectionString); //Calls information from the first tab.
         var ds = new DataTable();
 
         adapter.Fill(ds);
 
         foreach (DataRow row in ds.Rows)
         {
-            foreach (object col in row.ItemArray)//Places each item from the column into a comma delimited row output.//
+            foreach (object col in row.ItemArray)//Places each value by column into a comma delimited row output.
             {
                 Console.Write(col);
                 Console.Write(",");
@@ -31,7 +31,7 @@ public class CommandLine
         Console.WriteLine(fileName);
     }
     public static void ReadwithODBC(string fileName)
-    //Also ignoring sections of data from the spreadsheet after certain values. Again, working but unusable methodology//
+    //Also ignoring sections of data from the spreadsheet after certain values. Again, working but unusable methodology
     {
         string dbConnStr = @"Driver={Microsoft Excel Driver (*.xls)};driverid=790;dbq=";
 
@@ -48,7 +48,7 @@ public class CommandLine
             object[] cols = new object[item.FieldCount];
             item.GetValues(cols);
 
-            foreach (object col in cols)
+            foreach (object col in cols)//Again takes each value by column and converts to a comma delimited row output.
             {
                 Console.Write(col);
                 Console.Write(",");
@@ -58,6 +58,7 @@ public class CommandLine
     }
     static void Main(string[] args)
     {
+        //This directs the iteration of the parsing to be performed further down so that we can maintain the same directory formatting.
         string rootDir = @"C:\Users\Drew\Desktop\Web Dev\CommissionsApp\CommissionTestProject\CommissionTestProject\InputFiles";
         string[] inputCSVDirectories = new string[3];
         inputCSVDirectories[0] = rootDir + @"\DownloadedCSV\Sales";
@@ -78,6 +79,7 @@ public class CommandLine
                 {
                     switch (i)
                     {
+                        //Cases created for each type of file designated by interpretation of theme based on the available information in the tab.
                         case 0:
                             string jsonSales = CommissionParserSale.CreateJsonSales(file);
                             string fn = Path.GetFileNameWithoutExtension(file);
@@ -100,7 +102,7 @@ public class CommandLine
                 }
             }
         }
-
+        //Creating sets of associations between region/product/sales person and the list of each sale as definied by the class in jsonParse.cs via dictionary
         Dictionary<string, List<Sale>> regionSaleMap = new Dictionary<string, List<Sale>>();
         Dictionary<string, List<Product>> productMap = new Dictionary<string, List<Product>>();
         Dictionary<string, List<Sale>> personMap = new Dictionary<string, List<Sale>>();
@@ -112,6 +114,7 @@ public class CommandLine
                 string[] files = Directory.GetFiles(outputJsonDirectories[i]);
                 foreach (string file in files)
                 {
+                    //Combines each json file with similar theme to the desired aspects region/product/sales person.
                     switch (i)
                     {
                         case 0:
@@ -119,11 +122,13 @@ public class CommandLine
 
                             foreach (KeyValuePair<string, Sale[]> sale in jsonSale)
                             {
+                                //Checks for the region information in the sale to signal when a new list should be started
                                 if (!regionSaleMap.ContainsKey(sale.Key))
                                 {
                                     regionSaleMap[sale.Key] = new List<Sale>();
                                 }
 
+                                //Adds each sale from every file to the map list associated with the region.
                                 foreach (Sale s in sale.Value)
                                 {
                                     regionSaleMap[sale.Key].Add(s);
@@ -170,7 +175,7 @@ public class CommandLine
         }
 
         Dictionary<string, double> commissionsBracketMap = new Dictionary<string, double>();
-
+        //Adds each revenue value for every sale and any rejected or cancelled sales to find the gross sales and assign the commission bracket to each sales person
         foreach (KeyValuePair<string, List<Sale>> sale in personMap)
         {
             string agent = sale.Key;
@@ -179,13 +184,14 @@ public class CommandLine
             foreach (Sale s in sale.Value)
             {
                 agentRevenue = agentRevenue + Int32.Parse(s.Revenue);
-
+                //Confirms that the unrealized revenue exists prior to attempting to add it to the revenue value.
                 if (s.Dunno != "")
                 {
                     agentRevenue = agentRevenue + Int32.Parse(s.Dunno);
                 }
 
             }
+            //Defining the brackets based upon the gross revenue.
             if (0 < agentRevenue && agentRevenue <= 50000)
             {
                 commissionsBracketMap[agent] = 0.015;
@@ -213,7 +219,7 @@ public class CommandLine
         }
 
         Dictionary<string, Dictionary<string, double>> salesPersonByRegionCommissionsMap = new Dictionary<string, Dictionary<string, double>>();
-
+        
         // Iterate through each SalesPerson (sale.key (type is: string))
         //     and their list of sales (sale.value (type is: List<Sale>)
 
@@ -225,12 +231,7 @@ public class CommandLine
             // Add entry to the personbyregion map:
             salesPersonByRegionCommissionsMap[salesPerson] = new Dictionary<string, double>();
 
-            // The above line just added a structure similar to this to the map:
-            //{
-            //    "Amy": {}  // Note that this is just a key of "Amy" and a Dict object with no entries
-            //}
-
-            // Iterate through List of sales here:
+             // Iterate through List of sales here:
             foreach (Sale salesPersonSale in salesPersonListOfSales)
             {
                 // For each sale this Sales Person made, Look up what region it belongs to:
@@ -245,19 +246,13 @@ public class CommandLine
                         // Test if this sale matches the iterator for the Sale for the salesPerson:
                         if (regionSale.Equals (salesPersonSale))
                         {
-                            // Now that we have the region, we can create an entry like this for the salesperson at this region:
-                            // {
-                            //     "West": 0
-                            // }
-
-                            // Note the since this is a dictionary of a dictionary, the [key][key] is usable
+                            // Now that we have the region, set the intial revenue for the region equal to 0:
                             if (!salesPersonByRegionCommissionsMap[salesPerson].ContainsKey(region))
                             {
                                 salesPersonByRegionCommissionsMap[salesPerson][region] = 0;
                             }
 
                             // Looks like a match, we now know what region this sale belongs to:
-                            //   Note the +=.  This is shorthand for:  x = x + y
                             salesPersonByRegionCommissionsMap[salesPerson][region] += Int32.Parse(regionSale.Revenue);
                         }
                     }
@@ -267,14 +262,19 @@ public class CommandLine
 
         foreach (KeyValuePair<string, Dictionary<string, double>> salesPersonRegionRevenue in salesPersonByRegionCommissionsMap)
         {
-            Console.WriteLine("{0}:", salesPersonRegionRevenue.Key);
-
-            foreach (KeyValuePair<string, double> regionRevenue in salesPersonRegionRevenue.Value)
+            //Checks for given arguments to narrow field to give sales people and otherwise produces all sales person commission by region.
+            if ((args.Length>0 && args[0] == salesPersonRegionRevenue.Key)||(args.Length==0))
             {
-                Console.WriteLine("    {0}:{1}", regionRevenue.Key, (commissionsBracketMap[salesPersonRegionRevenue.Key] * regionRevenue.Value).ToString("C2"));
-            }
+                Console.WriteLine("{0}:", salesPersonRegionRevenue.Key);
 
-            Console.WriteLine();
+                foreach (KeyValuePair<string, double> regionRevenue in salesPersonRegionRevenue.Value)
+                {
+                    //Applies the derived comssions value by agent to the net sales in each region.
+                    Console.WriteLine("    {0}:{1}", regionRevenue.Key, (commissionsBracketMap[salesPersonRegionRevenue.Key] * regionRevenue.Value).ToString("C2"));
+                }
+
+                Console.WriteLine();
+            }
         }
 
         Console.WriteLine();
